@@ -19,7 +19,7 @@ USER root
 RUN wget -q https://files.pythonhosted.org/packages/3f/8c/7f68eb7ce0508775ffc33bbc3086c652abe4904fb2b5ecf18c200f4cf752/aerobulk-python-0.4.2.tar.gz -P /tmp && \
     cd /tmp && tar xzf aerobulk-python-0.4.2.tar.gz && \
     cd aerobulk-python-0.4.2 && touch README.md && \
-    pip install . --no-build-isolation && \
+    micromamba run -n base python -m pip install . --no-build-isolation && \
     cd / && rm -rf /tmp/aerobulk-python-0.4.2*
 USER $MAMBA_USER
 
