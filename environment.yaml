@@ -1,0 +1,36 @@
+name: wenhai-inference
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip>=23.0
+  # Scientific stack
+  - numpy>=1.24,<2.0
+  - xarray>=2024.1
+  - netcdf4>=1.7
+  - h5netcdf>=1.1
+  - scipy>=1.10
+  - pandas>=2.0
+  # Atmospheric/ocean tools
+  - metpy>=1.6
+  # ONNX inference with CUDA
+  - onnxruntime=1.18.1=py310hefa0614_200_cuda
+  - cuda-version=11.8
+  - cudatoolkit=11.8.0
+  - cudnn=8.9.7.29
+  # Visualization
+  - matplotlib>=3.9
+  - pillow>=10.0
+  - rioxarray>=0.15
+  # Misc
+  - pyyaml>=6.0
+  - psutil>=5.9
+  - pip:
+      # Ocean data access
+      - copernicusmarine>=1.3
+      # ERA5 / CDS data access
+      - cdsapi>=0.7
+      # S3 / cloud storage
+      - boto3>=1.26
+      - s3fs>=2023.1
