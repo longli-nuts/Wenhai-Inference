@@ -59,6 +59,30 @@ def _upsample_to_wenhai_grid(ds):
     return ds.interp(latitude=lat_target, longitude=TARGET_LON, method="linear")
 
 
+def _upsample_and_write_era5(ds_daily, output_file):
+    # Upsample and write one ERA5 variable at a time to avoid OOM on the 0.083° grid.
+    lat_target = TARGET_LAT[TARGET_LAT <= 90.0]
+    output_path = Path(output_file)
+    if output_path.exists():
+        output_path.unlink()
+
+    all_vars = INSTANTANEOUS + ACCUMULATED
+    for idx, var in enumerate(all_vars):
+        print(f"   Upsampling {var} ({idx + 1}/{len(all_vars)})...")
+        ds_var = (
+            ds_daily[[var]]
+            .astype(np.float32)
+            .interp(latitude=lat_target, longitude=TARGET_LON, method="linear")
+        )
+        ds_var.to_netcdf(
+            str(output_path),
+            mode="w" if idx == 0 else "a",
+            engine="netcdf4",
+            encoding={var: {"dtype": "float32", "zlib": True, "complevel": 1}},
+        )
+        ds_var.close()
+
+
 def _sanitize_era5_dataset(ds):
     if "expver" in ds.variables:
         ds = ds.drop_vars("expver")
@@ -200,8 +224,7 @@ def fetch_era5_data(forecast_date, output_dir):
     _validate_era5_dataset(ds_daily, "ERA5 daily dataset")
 
     print("Upsampling ERA5 from 0.25° to 0.083°...")
-    ds_upsampled = _upsample_to_wenhai_grid(ds_daily)
-    ds_upsampled.to_netcdf(str(upsampled_file))
+    _upsample_and_write_era5(ds_daily, upsampled_file)
 
     # Cleanup
     for ds_ in monthly_datasets:
