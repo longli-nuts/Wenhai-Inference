@@ -13,7 +13,7 @@ from metpy.units import units
 from aerobulk.flux import noskin_np
 
 
-REQUIRED_ERA5_VARS = ["t2m", "d2m", "u10", "v10", "msl", "tp", "ssrd", "strd"]
+REQUIRED_ATMOS_VARS = ["t2m", "d2m", "u10", "v10", "msl", "tp", "ssrd", "strd"]
 
 
 def _noskin_worker(args):
@@ -133,11 +133,11 @@ def run_inference(nowcast_file, era5_file, model_dir, output_path):
     init = np.nan_to_num((init - min_GLORYS) / (max_GLORYS - min_GLORYS))
 
     era5_ds = xr.open_dataset(era5_file)
-    missing_era5_vars = [var for var in REQUIRED_ERA5_VARS if var not in era5_ds]
+    missing_era5_vars = [var for var in REQUIRED_ATMOS_VARS if var not in era5_ds]
     if missing_era5_vars:
         era5_ds.close()
         raise ValueError(
-            f"ERA5 forcing file {era5_file} is missing required variables {missing_era5_vars}. "
+            f"Atmospheric forcing file {era5_file} is missing required variables {missing_era5_vars}. "
             f"Available variables: {list(era5_ds.data_vars)}"
         )
     nday = len(era5_ds.time_counter)

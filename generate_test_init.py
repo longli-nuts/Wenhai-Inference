@@ -5,13 +5,13 @@ from datetime import datetime
 from pathlib import Path
 
 from fetch_copernicus_marine import fetch_marine_data
-from fetch_era5 import fetch_era5_data
+from fetch_ifs import fetch_ifs_data
 from s3_upload import save_file_to_s3
 
 
 LOCAL_WORK_DIR = os.environ.get("LOCAL_WORK_DIR", "/tmp/wenhai_test_init")
 MARINE_INIT_FILE_NAME = "marine_init.nc"
-ERA5_INIT_FILE_NAME = "era5_init.nc"
+ATMOS_INIT_FILE_NAME = "era5_init.nc"
 
 
 def main():
@@ -34,28 +34,28 @@ def main():
 
     work_dir = Path(LOCAL_WORK_DIR)
     marine_dir = work_dir / "marine"
-    era5_dir = work_dir / "era5"
+    ifs_dir = work_dir / "ifs"
     marine_dir.mkdir(parents=True, exist_ok=True)
-    era5_dir.mkdir(parents=True, exist_ok=True)
+    ifs_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Generating test init for {test_date}...")
     marine_file = fetch_marine_data(
         forecast_date=test_date,
         output_dir=str(marine_dir),
     )
-    era5_file = fetch_era5_data(
+    atmos_file = fetch_ifs_data(
         forecast_date=test_date,
-        output_dir=str(era5_dir),
+        output_dir=str(ifs_dir),
     )
 
     custom_init_prefix = f"{s3_prefix}/{test_date}"
     fixed_marine_file = work_dir / MARINE_INIT_FILE_NAME
-    fixed_era5_file = work_dir / ERA5_INIT_FILE_NAME
+    fixed_atmos_file = work_dir / ATMOS_INIT_FILE_NAME
     Path(marine_file).replace(fixed_marine_file)
-    Path(era5_file).replace(fixed_era5_file)
+    Path(atmos_file).replace(fixed_atmos_file)
 
     marine_key = f"{custom_init_prefix}/{MARINE_INIT_FILE_NAME}"
-    era5_key = f"{custom_init_prefix}/{ERA5_INIT_FILE_NAME}"
+    atmos_key = f"{custom_init_prefix}/{ATMOS_INIT_FILE_NAME}"
 
     save_file_to_s3(
         bucket_name=bucket_name,
@@ -64,8 +64,8 @@ def main():
     )
     save_file_to_s3(
         bucket_name=bucket_name,
-        local_file_path=str(fixed_era5_file),
-        object_key=era5_key,
+        local_file_path=str(fixed_atmos_file),
+        object_key=atmos_key,
     )
 
     print("\nUse this for CUSTOM mode:")

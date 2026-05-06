@@ -9,14 +9,14 @@ import xarray as xr
 
 from model_manager import download_wenhai_model
 from fetch_copernicus_marine import fetch_marine_data
-from fetch_era5 import fetch_era5_data
+from fetch_ifs import fetch_ifs_data
 from wenhai_inference import run_inference
 from s3_upload import download_from_s3, save_file_to_s3
 from generate_thumbnails import generate_thumbnails
 
 LOCAL_WORK_DIR = os.environ.get("LOCAL_WORK_DIR", "/tmp/wenhai")
 MARINE_INIT_FILE_NAME = "marine_init.nc"
-ERA5_INIT_FILE_NAME = "era5_init.nc"
+ATMOS_INIT_FILE_NAME = "era5_init.nc"
 
 
 def validate_environment(use_custom_init: bool):
@@ -32,7 +32,8 @@ def validate_environment(use_custom_init: bool):
             [
                 "COPERNICUSMARINE_SERVICE_USERNAME",
                 "COPERNICUSMARINE_SERVICE_PASSWORD",
-                "CDS_API_KEY",
+                "ECMWF_API_KEY",
+                "ECMWF_API_EMAIL",
             ]
         )
     missing = [v for v in required if not os.environ.get(v)]
@@ -119,12 +120,12 @@ def main():
         custom_init_dir = Path(LOCAL_WORK_DIR) / "custom_init"
         custom_init_dir.mkdir(parents=True, exist_ok=True)
         marine_init_url = build_s3_file_url(init_folder_url, MARINE_INIT_FILE_NAME)
-        era5_init_url = build_s3_file_url(init_folder_url, ERA5_INIT_FILE_NAME)
+        atmos_init_url = build_s3_file_url(init_folder_url, ATMOS_INIT_FILE_NAME)
         nowcast_file = download_init_file(marine_init_url, custom_init_dir)
-        era5_file = download_init_file(era5_init_url, custom_init_dir)
+        era5_file = download_init_file(atmos_init_url, custom_init_dir)
         FORECAST_DATE = extract_forecast_date_from_marine_file(nowcast_file)
         print(f"[OK] Marine init: {nowcast_file}")
-        print(f"[OK] ERA5 init:   {era5_file}")
+        print(f"[OK] Atmos init:  {era5_file}")
     else:
         forecast_date_str = os.environ.get("FORECAST_DATE")
         if not forecast_date_str:
@@ -142,9 +143,9 @@ def main():
         nowcast_file = fetch_marine_data(FORECAST_DATE, str(Path(LOCAL_WORK_DIR) / "marine"))
 
         print(f"\n{'=' * 60}")
-        print("Step 3/5 - Fetching ERA5 atmospheric forcing")
+        print("Step 3/5 - Fetching IFS atmospheric forcing")
         print("=" * 60)
-        era5_file = fetch_era5_data(FORECAST_DATE, str(Path(LOCAL_WORK_DIR) / "era5"))
+        era5_file = fetch_ifs_data(FORECAST_DATE, str(Path(LOCAL_WORK_DIR) / "ifs"))
 
     forecast_start = FORECAST_DATE + timedelta(days=1)
     forecast_end   = FORECAST_DATE + timedelta(days=10)

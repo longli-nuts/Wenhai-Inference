@@ -31,7 +31,7 @@ WORKDIR /app
 COPY ./run_wenhai_inference.py .
 COPY ./wenhai_inference.py .
 COPY ./fetch_copernicus_marine.py .
-COPY ./fetch_era5.py .
+COPY ./fetch_ifs.py .
 COPY ./model_manager.py .
 COPY ./s3_upload.py .
 COPY ./generate_thumbnails.py .
