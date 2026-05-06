@@ -35,5 +35,6 @@ COPY ./fetch_ifs.py .
 COPY ./model_manager.py .
 COPY ./s3_upload.py .
 COPY ./generate_thumbnails.py .
+COPY ./add_metadata.py .
 
 CMD ["python", "run_wenhai_inference.py"]

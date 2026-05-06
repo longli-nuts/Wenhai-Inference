@@ -21,7 +21,7 @@ def _noskin_worker(args):
     return noskin_np(t0, t2m, h2m, u, v, msl, "ncar", 2, 10, 4, False)
 
 
-def _compute_bulk_flux(ocean_state, era5_ds, day_idx, min_GLORYS, max_GLORYS, min_flux, max_flux, mask):
+def _compute_bulk_flux(ocean_state, atmos_ds, day_idx, min_GLORYS, max_GLORYS, min_flux, max_flux, mask):
     # Compute aerobulk bulk air-sea fluxes for one forecast day.
     sst = ((max_GLORYS[0, 46] - min_GLORYS[0, 46]) * ocean_state[0, 46].astype(np.float32)
            + min_GLORYS[0, 46]) * mask[0, 46] + 273.15
@@ -30,15 +30,15 @@ def _compute_bulk_flux(ocean_state, era5_ds, day_idx, min_GLORYS, max_GLORYS, mi
     v0 = ((max_GLORYS[0, 23] - min_GLORYS[0, 23]) * ocean_state[0, 23].astype(np.float32)
           + min_GLORYS[0, 23]) * mask[0, 23]
 
-    era5_day = era5_ds.isel(time_counter=day_idx)
-    t2m  = era5_day["t2m"].values.astype(np.float32)
-    d2m  = era5_day["d2m"].values.astype(np.float32)
-    u10  = era5_day["u10"].values.astype(np.float32)
-    v10  = era5_day["v10"].values.astype(np.float32)
-    msl  = era5_day["msl"].values.astype(np.float32)
-    tp   = era5_day["tp"].values.astype(np.float32) / 86400.0
-    ssrd = era5_day["ssrd"].values.astype(np.float32) / 86400.0
-    strd = era5_day["strd"].values.astype(np.float32) / 86400.0
+    atmos_day = atmos_ds.isel(time_counter=day_idx)
+    t2m  = atmos_day["t2m"].values.astype(np.float32)
+    d2m  = atmos_day["d2m"].values.astype(np.float32)
+    u10  = atmos_day["u10"].values.astype(np.float32)
+    v10  = atmos_day["v10"].values.astype(np.float32)
+    msl  = atmos_day["msl"].values.astype(np.float32)
+    tp   = atmos_day["tp"].values.astype(np.float32) / 86400.0
+    ssrd = atmos_day["ssrd"].values.astype(np.float32) / 86400.0
+    strd = atmos_day["strd"].values.astype(np.float32) / 86400.0
 
     h2m = specific_humidity_from_dewpoint(msl * units.Pa, d2m * units.K).to("kg/kg").magnitude
     h2m = np.nan_to_num(h2m)
@@ -102,7 +102,7 @@ def _make_dataset(output, max_GLORYS, min_GLORYS, mask, longitude, latitude, dep
     })
 
 
-def run_inference(nowcast_file, era5_file, model_dir, output_path):
+def run_inference(nowcast_file, atmos_file, model_dir, output_path):
     # Load model, run 10-day autoregressive forecast and return concatenated xarray Dataset.
     model_dir = Path(model_dir)
     #Path(output_path).mkdir(parents=True, exist_ok=True)
@@ -132,15 +132,15 @@ def run_inference(nowcast_file, era5_file, model_dir, output_path):
 
     init = np.nan_to_num((init - min_GLORYS) / (max_GLORYS - min_GLORYS))
 
-    era5_ds = xr.open_dataset(era5_file)
-    missing_era5_vars = [var for var in REQUIRED_ATMOS_VARS if var not in era5_ds]
-    if missing_era5_vars:
-        era5_ds.close()
+    atmos_ds = xr.open_dataset(atmos_file)
+    missing_atmos_vars = [var for var in REQUIRED_ATMOS_VARS if var not in atmos_ds]
+    if missing_atmos_vars:
+        atmos_ds.close()
         raise ValueError(
-            f"Atmospheric forcing file {era5_file} is missing required variables {missing_era5_vars}. "
-            f"Available variables: {list(era5_ds.data_vars)}"
+            f"Atmospheric forcing file {atmos_file} is missing required variables {missing_atmos_vars}. "
+            f"Available variables: {list(atmos_ds.data_vars)}"
         )
-    nday = len(era5_ds.time_counter)
+    nday = len(atmos_ds.time_counter)
     print(f"Starting {nday}-day WenHai forecast from {init_date.strftime('%Y-%m-%d')}...")
 
     all_datasets = []
@@ -150,7 +150,7 @@ def run_inference(nowcast_file, era5_file, model_dir, output_path):
         fcst_date = init_date + timedelta(days=1 + i)
         print(f"   Day {i+1}/{nday}: {fcst_date.strftime('%Y-%m-%d')} ...", end=" ", flush=True)
 
-        bulk_flux = _compute_bulk_flux(current_state, era5_ds, i, min_GLORYS, max_GLORYS, min_flux, max_flux, mask)
+        bulk_flux = _compute_bulk_flux(current_state, atmos_ds, i, min_GLORYS, max_GLORYS, min_flux, max_flux, mask)
 
         inputs = {name_ocean: current_state.astype(np.float16).clip(0, 1), name_flux: bulk_flux}
         output = session.run(None, inputs)[0]
@@ -161,7 +161,7 @@ def run_inference(nowcast_file, era5_file, model_dir, output_path):
         all_datasets.append(ds_day)
         print("✓")
 
-    era5_ds.close()
+    atmos_ds.close()
     print(f"[OK] Forecast complete: {nday} days")
 
     final_ds = xr.concat(all_datasets, dim="time")
