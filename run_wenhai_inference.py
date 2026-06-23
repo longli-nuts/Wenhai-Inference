@@ -24,7 +24,6 @@ def validate_environment(use_custom_init: bool, require_aws_bucket_name: bool):
     required = [
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
-        "AWS_SESSION_TOKEN",
         "AWS_S3_ENDPOINT",
     ]
     if require_aws_bucket_name:

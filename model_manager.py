@@ -4,8 +4,8 @@ from pathlib import Path
 import boto3
 from botocore.exceptions import ClientError
 
-MODELS_S3_BUCKET = os.environ.get("WENHAI_S3_BUCKET", "project-moi-ai")
-MODELS_S3_PREFIX = "WENHAI_EDITO/WenHai"
+MODELS_S3_BUCKET = os.environ.get("AWS_BUCKET_NAME") or "project-moiai-octo"
+MODELS_S3_PREFIX = "public/model_weight/wenhai/WenHai"
 
 MODEL_FILES = ["WenHai.onnx", "min_GLORYS.npy", "max_GLORYS.npy", "min_flux.npy", "max_flux.npy", "mask_GLORYS.nc"]
 
